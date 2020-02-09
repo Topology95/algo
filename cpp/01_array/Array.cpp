@@ -1,13 +1,18 @@
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
+#include <ctime>
 using namespace std;
 
 template <class T> class Array;
 template <class T>
 ostream& operator<<(ostream& output, const Array<T>& A);
 template <class T>
+istream& operator>>(istream& input, Array<T>& A);
+template <class T>
 void mergeTwoOrderedArray(const Array<T>& A, const Array<T>& B, Array<T> &R);
 
+
+/*数组模板类*/
 template <class T>
 class Array{
 private:
@@ -20,20 +25,25 @@ public:
     //构造函数
     Array();//默认构造函数，容量为5
     Array(int n);//指定数组容量的构造函数
+
     //析构函数
     ~Array(){delete [] elems;}
+
     //只读访问接口
     int getSize() const {return size;}//返回数组规模
     int getCapacity() const {return capacity;}//返回数组容量
+    bool isEmpty() const {return size <= 0;}//判空
     int find(const T& e) const {return find(e, 0, size);}//无序数组整体查找
     int find(const T& e, int lo, int hi) const;//无序数组区间查找，返回等于e的元素的最大位置
     int search(const T& e) const {return size <= 0 ? -1 : search(e, 0, size);}//有序数组整体查找
     int search(const T& e, int lo, int hi) const;//有序数组区间查找，返回不大于e的元素的最大位置
-    bool disordered() const;//判断数组是否已经有序
+    int disordered() const;//判断数组是否已经有序，返回数组逆序对的总数
+
     //可写访问接口
     T& operator[](int r) const {return elems[r];}//重载下标运算符，直接引用数组元素
     Array<T>& operator=(const Array<T>& A);//重载复制运算符，直接复制数组
-    friend ostream& operator<<<T>(ostream& output, const Array<T>& A);//重载流插入运算符，打印数组信息
+    friend ostream& operator<<<T>(ostream& output, const Array<T>& A);//重载流插入运算符，打印数组
+    friend istream& operator>><T>(istream& input, Array<T>& A);//重载流提取运算符，输入数组
 
     int insert(int r, const T& e);//将e插入到位置为r处，返回元素插入位置
     int insert(const T& e){return insert(size, e);}//默认在数组末尾插入元素e，返回元素插入位置
@@ -42,10 +52,12 @@ public:
     T put(int r, const T& e);//用e替换位置为r的元素，返回被替换的元素
     int deduplicate();//无序数组去重，返回被删除元素数
     int uniquify();//有序数组去重，返回被删除元素数
-    void sort(){sort(0, size);}//数组整体排序
-    void sort(int lo, int hi);//对区间段[lo,hi)排序，采用冒泡排序法
+
+    void bubbleSort(int lo, int hi);//对区间段[lo,hi)作起泡排序
+    void merge(int lo, int mi, int hi);//有序数组的二路归并
+    void mergeSort(int lo, int hi);//对区间段[lo,hi)作归并排序
     void unsort(){unsort(0, size);}//整体置乱
-    void unsort(int lo, int hi);//区间[lo, hi)置乱
+    void unsort(int lo, int hi);//对区间段[lo, hi)置乱
 
     friend void mergeTwoOrderedArray<T>(const Array<T>& A, const Array<T>& B, Array<T> &R);//将有序数组A、B合并为一个新的有序数组R
 };
@@ -62,8 +74,8 @@ Array<T>::Array(int n){
     size = 0;
 }
 
-template <class T>
-int Array<T>::find(const T& e, int lo, int hi) const{//查找等于e且index最大的元素，返回其index；若查找失败，返回-1
+template <class T>//查找等于e且index最大的元素，返回其index；若查找失败，返回-1
+int Array<T>::find(const T& e, int lo, int hi) const{
     try{
         if(lo < 0 || lo >= size || hi < 0 || hi > size || lo >= hi) throw "Find(e, lo, hi) index error! Index should be ";
         while((lo < hi--) && (e != elems[hi]));
@@ -90,12 +102,12 @@ int Array<T>::search(const T& e, int lo, int hi) const{
 }
 
 template <class T>
-bool Array<T>::disordered() const{
+int Array<T>::disordered() const{
     int n = 0;
     for(int i = 1; i < size; ++i){
         if(elems[i - 1] > elems[i]) ++n;//逆序则计数
     }
-    return !n;//有序当且仅当n=0
+    return n;
 }
 
 template <class T>
@@ -114,6 +126,20 @@ ostream& operator<<(ostream& output, const Array<T>& A){
     output <<  "规模：" << A.size << "，容量：" << A.capacity << endl;
     for(int i = 0; i < A.size; ++i) output << "elems[" << i << "]:  " << A.elems[i] << endl;
     return output;
+}
+
+template <class T>
+istream& operator>>(istream& input, Array<T>& A){
+    cout << "输入数组元素的个数为：";
+    int count;
+    input >> count;
+    cout << "请输入元素的数值：";
+    T elem;
+    for(int i = 0; i < count; ++i){
+        input >> elem;
+        A.insert(elem);
+    }
+    return input;
 }
 
 template <class T>
@@ -212,9 +238,9 @@ int Array<T>::uniquify(){
 }
 
 template <class T>
-void Array<T>::sort(int lo, int hi){
+void Array<T>::bubbleSort(int lo, int hi){
     try{
-        if(lo < 0 || lo >= size || hi < 0 || hi > size || lo >= hi) throw "Sort(lo, hi) index error! Index should be ";
+        if(lo < 0 || lo >= size || hi < 0 || hi > size || lo >= hi) throw "bubbleSort(lo, hi) index error! Index should be ";
         bool sorted = false;
         while(!sorted){
             sorted = true;
@@ -232,9 +258,44 @@ void Array<T>::sort(int lo, int hi){
 }
 
 template <class T>
+void Array<T>::merge(int lo, int mi, int hi){
+    try{
+        if(lo < 0 || lo >= size || hi < 0 || hi > size || lo >= hi) throw "merge(lo, mi, hi) index error! Index should be ";
+        T* A = elems + lo;
+        int lb = mi - lo;
+        T* B = new T[lb];
+        for(int i = 0; i < lb; B[i] = A[i++]);
+        int lc = hi - mi;
+        T* C = elems + mi;
+        for(int i = 0, j = 0, k = 0; (j < lb) || (k < lc);){
+            if((j < lb) && (!(k < lc) || (B[j] <= C[k]))) A[i++] = B[j++];
+            if((k < lc) && (!(j < lb) || (C[k] < B[j]))) A[i++] = C[k++];
+        }
+        delete [] B;
+    }catch(const char* msg){
+        cerr << msg << "0 <= lo < hi <= " << size << endl;
+    }
+}
+
+template <class T>
+void Array<T>::mergeSort(int lo, int hi){
+    try{
+        if(lo < 0 || lo >= size || hi < 0 || hi > size || lo >= hi) throw "mergeSort(lo, hi) index error! Index should be ";
+        if(hi - lo < 2) return;
+        int mi = (lo + hi) / 2;
+        mergeSort(lo, mi);
+        mergeSort(mi,hi);
+        merge(lo, mi, hi);
+    }catch(const char* msg){
+        cerr << msg << "0 <= lo < hi <= " << size << endl;
+    }
+}
+
+template <class T>
 void Array<T>::unsort(int lo, int hi){
     try{
         if(lo < 0 || lo >= size || hi < 0 || hi > size || lo >= hi) throw "Unsort(lo, hi) index error! Index should be ";
+        srand((unsigned)time(nullptr));
         T* A = elems + lo;
         for(int i = hi - lo; i > 0; --i)
             swap(A[i - 1], A[rand() % i]);
