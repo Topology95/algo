@@ -52,7 +52,7 @@ public:
     List(){init();}
 
     //析构函数
-    ~List(){clear(); delete header; delete trailer;};
+    ~List(){clear(); delete header; delete trailer;}
 
     void init();//列表创建初始化
     friend ostream& operator<<<T>(ostream& output, const List<T>& L);//重载流插入运算符，打印列表
@@ -84,9 +84,8 @@ public:
     void reverse();//前后倒置
     void insertionSort(ListNode<T>* p, int n);//对从p开始连续的n个节点作插入排序
     void selectionSort(ListNode<T>* p, int n);//对从p开始连续的n个节点作选择排序
-    void merge(ListNode<T>* & p, int n, List<T>& L, ListNode<T>* q, int m);//有序列表的归并：当前列表中自p起的n个元素，与列表L中自q起的m个元素归并
-    void mergeSort(ListNode<T>* & p, int n);//对从p开始连续的n个节点作归并排序
-
+    void merge(ListNode<T>* &p, int n, List<T>& L, ListNode<T>* q, int m);//有序列表的归并：当前列表中自p起的n个元素，与列表L中自q起的m个元素归并
+    void mergeSort(ListNode<T>* &p, int n);//对从p开始连续的n个节点作归并排序
 };
 
 template <class T>
@@ -102,13 +101,14 @@ void List<T>::init(){
 
 template <class T>
 ostream& operator<<(ostream& output, const List<T>& L){
-    output << "当前列表：header " ;
+    output << "当前列表的规模为 " << L.size <<",具体信息如下" << endl;
+    output << "header" ;
     ListNode<T>* p = L.header -> succ;
     while(p != L.trailer){
-        output << p -> data << " ";
+        output << ", " << p -> data;
         p = p -> succ;
     }
-    output << "trailer" << endl;
+    output << ", trailer" << endl;
     return output;
 }
 
@@ -276,7 +276,7 @@ void List<T>::selectionSort(ListNode<T>* p, int n){
 }
 
 template <class T>
-void List<T>::merge(ListNode<T>* & p, int n, List<T>& L, ListNode<T>* q, int m){
+void List<T>::merge(ListNode<T>* &p, int n, List<T>& L, ListNode<T>* q, int m){
     ListNode<T>* pp = p -> pred;
     while(0 < m){//在q尚未移出区间之前
         if((0 < n) && (p -> data <= q -> data)){//若p仍在区间内且v(p)<=v(q)
@@ -292,7 +292,7 @@ void List<T>::merge(ListNode<T>* & p, int n, List<T>& L, ListNode<T>* q, int m){
 }
 
 template <class T>
-void List<T>::mergeSort(ListNode<T>* & p, int n){
+void List<T>::mergeSort(ListNode<T>* &p, int n){
     try{
         if(!valid(p)) throw "节点位置不合法";
         if(n < 2) return;
